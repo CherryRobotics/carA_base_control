@@ -27,7 +27,6 @@ void BaseboardCommandCallback(const cara_base_msgs::BaseboardCommand& msg) {
   if (msg.steeringcommand.steer != 0)
     steering_.writeMicroseconds(msg.steeringcommand.steer);
   if (msg.speedcommand.speed != 0)
-    // 880 - 1750 
     motor_.writeMicroseconds(msg.speedcommand.speed);
 }
 
