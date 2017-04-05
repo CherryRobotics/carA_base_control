@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(carA_base_control)
+project(cara_base_control)
 
 find_package(catkin REQUIRED COMPONENTS
   rosserial_arduino

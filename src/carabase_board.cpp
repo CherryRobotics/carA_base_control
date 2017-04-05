@@ -91,7 +91,7 @@ void Arm() {
   delay(100);
   motor_.writeMicroseconds(1351);
   delay(100);
-  servo.writeMicroseconds(1366);
+  motor_.writeMicroseconds(1366);
   delay(100);
   motor_.writeMicroseconds(1372);
   delay(100);
@@ -105,7 +105,7 @@ void Arm() {
   delay(100);
   motor_.writeMicroseconds(1367);
   delay(100);
-  motor_.writeMicroseconds(1360)
+  motor_.writeMicroseconds(1360);
 }
 
 void setup()
@@ -119,7 +119,7 @@ void setup()
   steering_.attach(STEERING_SIGNAL);
   motor_.attach(ESC_SIGNAL);
   steering_.writeMicroseconds(1500);
-  Arm()
+  Arm();
   Wire.begin();
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x6B); // PWR_MGMT_1 reg
