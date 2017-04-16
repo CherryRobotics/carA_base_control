@@ -13,21 +13,40 @@
 #include <Servo.h>
 #include <Wire.h>
 
+// RC Control Definitions
+#define RC_STEERING 6
+#define RC_THROTTLE 7
+#define RC_BIND 8
+
+// Onboard Control Definitions
 #define ESC_SIGNAL 10
 #define STEERING_SIGNAL 11
 #define MPU_addr 0x68
 
 Servo steering_;
 Servo motor_;
+bool remote_control
 
+// Ros stuff.
 ros::NodeHandle  nh;
+ros::Subscriber<cara_base_msgs::BaseboardCommand> sub("basecommand", BaseboardCommandCallback);
+cara_base_msgs::BaseboardInfo info;
+ros::Publisher base_info("baseinfo", &info);
 
+
+void SteeringControl(uint16_t microsecs) {
+  steering_.writeMicroseconds(microsecs)
+}
+
+void MotorControl(uint16_t microsecs) {
+  motor_.writeMicroseconds(microsecs)
+}
 
 void BaseboardCommandCallback(const cara_base_msgs::BaseboardCommand& msg) {
   if (msg.steeringcommand.steer != 0)
-    steering_.writeMicroseconds(msg.steeringcommand.steer);
+    SteeringControl(msg.steeringcommand.steer);
   if (msg.speedcommand.speed != 0)
-    motor_.writeMicroseconds(msg.speedcommand.speed);
+    MotorControl(msg.speedcommand.speed);
 }
 
 void PackageBaseboardInfo(uint16_t imu_data[],
@@ -54,13 +73,12 @@ void RetrieveImuData(uint16_t imu_data[]) {
   imu_data[4] = Wire.read()<<8|Wire.read();  // 0x43 (GYRO_XOUT_H) & 0x44 (GYRO_XOUT_L)
   imu_data[5] = Wire.read()<<8|Wire.read();  // 0x45 (GYRO_YOUT_H) & 0x46 (GYRO_YOUT_L)
   imu_data[6] = Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
+
+  // I don't know if this will work yet. TODO: Investigate!
+  // for (i = 0; i < 7; i++) {
+  //   imu_data[i] = Wire.read()<<8|Wire.read();
+  // }
 }
-
-
-ros::Subscriber<cara_base_msgs::BaseboardCommand> sub("basecommand", BaseboardCommandCallback);
-cara_base_msgs::BaseboardInfo info;
-ros::Publisher base_info("baseinfo", &info);
-
 
 void setup()
 {
@@ -68,6 +86,14 @@ void setup()
   nh.initNode();
   nh.advertise(base_info);
   nh.subscribe(sub);
+
+  // When starting, remote control is active until bind is pressed.
+  remote_control = true
+
+  // Pinmodes for rc binds
+  pinMode(RC_STEERING, INPUT);
+  pinMode(RC_THROTTLE, INPUT);
+  pinMode(RC_BIND, INPUT);
 
   // Hardware Initializations
   steering_.attach(STEERING_SIGNAL);
@@ -81,28 +107,32 @@ void setup()
 
 }
 
-void loop()
-{
-  uint16_t imu_data[7];
-  RetrieveImuData(imu_data);
+// void loop()
+// {
+//   uint16_t imu_data[7];
+//   RetrieveImuData(imu_data);
+//   PackageBaseboardInfo(imu_data, info);
+//   base_info.publish(&info);
+//
+//   nh.spinOnce();
+//   // delay(50);
+// }
+//
+
+
+void loop() {
+
+  // Control Section
+  if (remote_control) {
+    SteeringControl(pulseIn(RC_STEERING, HIGH))
+    MotorControl(pulseIN(RC_THROTTLE, HIGH))
+  } else {
+    // Handle onboard control inputs.
+    nh.spinOnce()
+  }
+  // Feedback section (or whats left of it.)
+  uint16_t imu_data[7]
+  RetrieveImuData(imu_data)
   PackageBaseboardInfo(imu_data, info);
-  base_info.publish(&info);
-
-  nh.spinOnce();
-  // delay(50);
+  base_info.publish(&info)
 }
-
-
-// Override = false
-//
-// loop
-// if not Override
-//    pulse in motors and steering
-//    pulse out motors and steering
-// else
-//  nh.spin() // listen for commands for motors/steering
-//
-// is bind pressed? aka Override activated?
-// Get mpu
-//
-//
