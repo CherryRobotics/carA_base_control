@@ -31,7 +31,6 @@ void BaseboardCommandCallback(const cara_base_msgs::BaseboardCommand& msg) {
 }
 
 void PackageBaseboardInfo(uint16_t imu_data[],
-                          uint16_t& enc,
                           cara_base_msgs::BaseboardInfo& msg) {
   msg.imu.accelerator_x = imu_data[0];
   msg.imu.accelerator_y = imu_data[1];
@@ -40,7 +39,7 @@ void PackageBaseboardInfo(uint16_t imu_data[],
   msg.imu.gyroscope_x = imu_data[4];
   msg.imu.gyroscope_y = imu_data[5];
   msg.imu.gyroscope_z = imu_data[6];
-  msg.encoders.motor_speed = enc;
+  msg.encoders.motor_speed = 0;
 }
 
 void RetrieveImuData(uint16_t imu_data[]) {
@@ -57,56 +56,11 @@ void RetrieveImuData(uint16_t imu_data[]) {
   imu_data[6] = Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 }
 
-void RetrieveEncoderData(uint16_t& encoder_data) {
-  encoder_data = 0; //Once encoders are installed, this will change.
-}
 
 ros::Subscriber<cara_base_msgs::BaseboardCommand> sub("basecommand", BaseboardCommandCallback);
 cara_base_msgs::BaseboardInfo info;
 ros::Publisher base_info("baseinfo", &info);
 
-void Arm() {
-  // Arming sequence
-  motor_.writeMicroseconds(1366);
-  delay(100);
-  motor_.writeMicroseconds(1372);
-  delay(100);
-  motor_.writeMicroseconds(1372);
-  delay(100);
-  motor_.writeMicroseconds(1352);
-  delay(100);
-  motor_.writeMicroseconds(1372);
-  delay(100);
-  motor_.writeMicroseconds(1373);
-  delay(100);
-  motor_.writeMicroseconds(1366);
-  delay(100);
-  motor_.writeMicroseconds(1372);
-  delay(100);
-  motor_.writeMicroseconds(1366);
-  delay(100);
-  motor_.writeMicroseconds(1367);
-  delay(100);
-  motor_.writeMicroseconds(1372);
-  delay(100);
-  motor_.writeMicroseconds(1351);
-  delay(100);
-  motor_.writeMicroseconds(1366);
-  delay(100);
-  motor_.writeMicroseconds(1372);
-  delay(100);
-  motor_.writeMicroseconds(1367);
-  delay(100);
-  motor_.writeMicroseconds(1367);
-  delay(100);
-  motor_.writeMicroseconds(1343);
-  delay(100);
-  motor_.writeMicroseconds(1367);
-  delay(100);
-  motor_.writeMicroseconds(1367);
-  delay(100);
-  motor_.writeMicroseconds(1360);
-}
 
 void setup()
 {
@@ -119,7 +73,6 @@ void setup()
   steering_.attach(STEERING_SIGNAL);
   motor_.attach(ESC_SIGNAL);
   steering_.writeMicroseconds(1500);
-  Arm();
   Wire.begin();
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x6B); // PWR_MGMT_1 reg
@@ -131,12 +84,25 @@ void setup()
 void loop()
 {
   uint16_t imu_data[7];
-  uint16_t encoder_data;
   RetrieveImuData(imu_data);
-  RetrieveEncoderData(encoder_data);
-  PackageBaseboardInfo(imu_data, encoder_data, info);
+  PackageBaseboardInfo(imu_data, info);
   base_info.publish(&info);
 
   nh.spinOnce();
   // delay(50);
 }
+
+
+// Override = false
+//
+// loop
+// if not Override
+//    pulse in motors and steering
+//    pulse out motors and steering
+// else
+//  nh.spin() // listen for commands for motors/steering
+//
+// is bind pressed? aka Override activated?
+// Get mpu
+//
+//
